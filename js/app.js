@@ -1,5 +1,5 @@
-import { sb, $, esc, hm, fmtDate, todayIso, toast, errText, store } from './common.js';
-import { VEREIN, VEREIN_IMPRESSUM, VEREIN_DATENSCHUTZ } from './config.js';
+import { sb, $, esc, hm, fmtDate, todayIso, toast, errText, store } from './common.js?v=b186e88';
+import { VEREIN, VEREIN_IMPRESSUM, VEREIN_DATENSCHUTZ } from './config.js?v=b186e88';
 
 const MINE_KEY = 'spielfest-meine-eintraege';
 const NAME_KEY = 'spielfest-name';
