@@ -3,7 +3,7 @@
 Eigene Alternative zu Voluntira: Eltern tragen sich ohne Konto in Schichten ein, das Orga-Team pflegt Stationen und Schichten und sieht alle Kontaktdaten.
 
 - **Helfer-Seite:** `index.html` – Schichten ansehen, eintragen (Name, E-Mail, optional Telefon/Bemerkung), per Link wieder austragen, Termin in den Kalender übernehmen.
-- **Orga-Bereich:** `admin.html` – Anmeldung per E-Mail-Link. Übersicht mit offenen Plätzen, Helferliste mit CSV-Export und Druckansicht, Schichtplan bearbeiten, Spielfest fürs nächste Jahr als Vorlage kopieren.
+- **Orga-Bereich:** `admin.html` – Anmeldung mit E-Mail und Passwort (beim ersten Mal oder bei vergessenem Passwort per E-Mail-Link). Orga-Mitglieder schalten weitere Adressen unter Einstellungen → Orga-Team frei. Übersicht mit offenen Plätzen, Helferliste mit CSV-Export und Druckansicht, Schichtplan bearbeiten, Spielfest fürs nächste Jahr als Vorlage kopieren.
 
 Technik: statische Seiten (HTML/CSS/JavaScript, kein Build-Schritt) auf GitHub Pages, Daten in Supabase (Projekt `handball-spielfest`, Region Frankfurt).
 
@@ -11,7 +11,7 @@ Technik: statische Seiten (HTML/CSS/JavaScript, kein Build-Schritt) auf GitHub P
 
 1. **GitHub Pages:** Unter *Settings → Pages → Source* „GitHub Actions" wählen. Jeder Push auf `main` veröffentlicht die Seite.
 2. **Supabase Login-Link:** Im Supabase-Dashboard unter *Authentication → URL Configuration* die *Site URL* auf die GitHub-Pages-Adresse setzen (z. B. `https://<name>.github.io/handball-spielfest/`) und dieselbe Adresse plus `admin.html` bei *Redirect URLs* eintragen. Sonst führt der Anmelde-Link ins Leere.
-3. **Orga-Zugang vergeben:** Im Supabase SQL-Editor
+3. **Orga-Zugang vergeben:** im Orga-Bereich unter Einstellungen → Orga-Team, oder im Supabase SQL-Editor
    ```sql
    insert into public.admins (email) values ('name@example.org');
    ```

@@ -26,14 +26,21 @@
     <section id="loginView" class="hidden">
       <div class="card" style="max-width:440px;margin:40px auto">
         <h2>Anmelden</h2>
-        <p class="muted" style="margin-top:0">Du bekommst einen Anmelde-Link per E-Mail. Zugang haben nur eingetragene Orga-Adressen.</p>
+        <p class="muted" style="margin-top:0">Zugang haben nur eingetragene Orga-Adressen.</p>
         <form id="loginForm">
           <label class="field">E-Mail
-            <input name="email" type="email" required autocomplete="email">
+            <input name="email" type="email" required autocomplete="username">
           </label>
-          <button class="btn" type="submit">Link senden</button>
+          <label class="field">Passwort
+            <input name="password" type="password" autocomplete="current-password">
+          </label>
+          <button class="btn" type="submit" style="width:100%">Anmelden</button>
         </form>
-        <p id="loginMsg" class="hidden" style="margin-bottom:0"></p>
+        <p id="loginMsg" class="hidden" style="margin:12px 0 0"></p>
+        <p style="margin:16px 0 0;font-size:14px" class="muted">
+          Noch kein Passwort oder vergessen?
+          <button class="btn link" type="button" id="sendLink">Anmelde-Link per E-Mail schicken</button>
+        </p>
       </div>
     </section>
 
@@ -72,6 +79,29 @@
       <div class="dlg-foot">
         <button type="button" class="btn ghost" data-close>Abbrechen</button>
         <button type="submit" class="btn">Eintragen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="pwDlg">
+    <form id="pwForm" method="dialog">
+      <div class="dlg-head">
+        <h2>Passwort festlegen</h2>
+        <p>Danach meldest du dich auf jedem Gerät mit E-Mail und Passwort an, ganz ohne Link.</p>
+      </div>
+      <div class="dlg-body">
+        <div class="error hidden" id="pwError" role="alert"></div>
+        <input type="email" name="username" autocomplete="username" hidden>
+        <label class="field">Neues Passwort <small>(mind. 8 Zeichen)</small>
+          <input name="pw1" type="password" minlength="8" required autocomplete="new-password">
+        </label>
+        <label class="field">Wiederholen
+          <input name="pw2" type="password" minlength="8" required autocomplete="new-password">
+        </label>
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn ghost" data-close>Später</button>
+        <button type="submit" class="btn">Speichern</button>
       </div>
     </form>
   </dialog>

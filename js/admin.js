@@ -29,30 +29,78 @@ async function route(session) {
     $('#noAccess').classList.remove('hidden');
     return;
   }
-  // Login-Parameter aus der Adresszeile entfernen
-  if (location.hash.includes('access_token') || location.search.includes('code=')) {
-    history.replaceState(null, '', location.pathname);
-  }
+  // Über einen Anmelde-Link gekommen? Dann gleich anbieten, ein Passwort festzulegen.
+  const viaLink = location.hash.includes('access_token') || location.search.includes('code=');
+  if (viaLink) history.replaceState(null, '', location.pathname);
   $('#appView').classList.remove('hidden');
   await loadEvents();
+  if (viaLink) openPwDialog(session.user.email);
+}
+
+function loginMsg(text, isError) {
+  const msg = $('#loginMsg');
+  msg.className = isError ? 'error' : '';
+  msg.textContent = text;
 }
 
 $('#loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = e.currentTarget.email.value.trim();
-  const btn = e.currentTarget.querySelector('button');
+  const f = e.currentTarget;
+  const email = f.email.value.trim();
+  const password = f.password.value;
+  if (!password) return loginMsg('Bitte Passwort eingeben – oder unten einen Anmelde-Link anfordern.', true);
+  const btn = f.querySelector('button[type=submit]');
   btn.disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false;
+  if (error) {
+    loginMsg(/invalid login credentials/i.test(error.message)
+      ? 'E-Mail oder Passwort stimmt nicht. Noch kein Passwort festgelegt? Dann unten einen Anmelde-Link anfordern.'
+      : errText(error), true);
+  }
+});
+
+$('#sendLink').addEventListener('click', async () => {
+  const email = $('#loginForm').email.value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    $('#loginForm').email.focus();
+    return loginMsg('Bitte oben zuerst deine E-Mail-Adresse eintragen.', true);
+  }
   const { error } = await sb.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: location.origin + location.pathname },
   });
-  btn.disabled = false;
-  const msg = $('#loginMsg');
-  msg.classList.remove('hidden');
-  msg.className = error ? 'error' : '';
-  msg.textContent = error
+  loginMsg(error
     ? errText(error)
-    : `Link ist unterwegs an ${email}. Bitte das Postfach (auch Spam) prüfen und den Link auf diesem Gerät öffnen.`;
+    : `Link ist unterwegs an ${email}. Bitte den Link auf diesem Gerät öffnen – danach kannst du ein Passwort festlegen.`, !!error);
+});
+
+// ---------- Passwort ----------
+
+function openPwDialog(email) {
+  const f = $('#pwForm');
+  f.reset();
+  f.username.value = email;
+  $('#pwError').classList.add('hidden');
+  $('#pwDlg').showModal();
+  f.pw1.focus();
+}
+
+$('#pwForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.currentTarget;
+  const err = $('#pwError');
+  const show = (m) => { err.textContent = m; err.classList.remove('hidden'); };
+  if (f.pw1.value.length < 8) return show('Bitte mindestens 8 Zeichen.');
+  if (f.pw1.value !== f.pw2.value) return show('Die beiden Passwörter sind nicht gleich.');
+  const { error } = await sb.auth.updateUser({ password: f.pw1.value });
+  if (error) {
+    return show(/same/i.test(error.message) ? 'Das ist schon dein aktuelles Passwort.'
+      : /weak|short|characters/i.test(error.message) ? 'Das Passwort ist zu schwach. Bitte ein längeres wählen.'
+      : errText(error));
+  }
+  $('#pwDlg').close();
+  toast('Passwort gespeichert. Ab jetzt reicht E-Mail + Passwort.');
 });
 
 $('#logout').addEventListener('click', () => sb.auth.signOut());
@@ -418,6 +466,20 @@ function renderSettings() {
     </form>
 
     <div class="card">
+      <h2>Orga-Team</h2>
+      <p class="muted" style="margin-top:0">Diese Adressen dürfen in den Orga-Bereich. Neue Mitglieder melden sich beim ersten Mal über „Anmelde-Link per E-Mail schicken“ an und legen dabei ihr Passwort fest.</p>
+      <div id="adminList" class="muted">Lädt …</div>
+      <form id="addAdminForm" class="row" style="margin-top:10px">
+        <input name="email" type="email" required placeholder="name@example.org" aria-label="E-Mail für Orga-Zugang"
+          style="flex:1;min-width:180px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg)">
+        <button class="btn small" type="submit">Freischalten</button>
+      </form>
+      <div class="row" style="margin-top:14px">
+        <button class="btn small ghost" data-action="set-password">Mein Passwort ändern</button>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Nächstes Jahr</h2>
       <p class="muted" style="margin-top:0">Kopiert alle Stationen und Schichten in ein neues Spielfest – ohne die Eintragungen.</p>
       <div class="row">
@@ -431,6 +493,18 @@ function renderSettings() {
       <p class="muted" style="margin-top:0">Löscht dieses Spielfest mit allen Stationen, Schichten und Eintragungen. Das lässt sich nicht rückgängig machen.</p>
       <button class="btn danger" data-action="delete-event">Spielfest löschen</button>
     </div>`;
+
+  renderAdmins();
+  $('#addAdminForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const input = ev.currentTarget.email;
+    const email = input.value.trim().toLowerCase();
+    const { error } = await sb.from('admins').insert({ email });
+    if (error) return toast(/duplicate/.test(error.message) ? 'Diese Adresse ist schon freigeschaltet.' : errText(error), 'error');
+    input.value = '';
+    toast(`${email} ist freigeschaltet`);
+    renderAdmins();
+  });
 
   $('#eventForm').addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -446,6 +520,30 @@ function renderSettings() {
     toast('Gespeichert');
     loadEvents(event.id);
   });
+}
+
+async function renderAdmins() {
+  const box = $('#adminList');
+  if (!box) return;
+  const [{ data, error }, { data: me }] = await Promise.all([
+    sb.from('admins').select('email').order('email'),
+    sb.auth.getUser(),
+  ]);
+  if (error) { box.textContent = errText(error); return; }
+  const myEmail = me.user?.email?.toLowerCase();
+  box.innerHTML = `<table class="list"><tbody>${data.map((a) => `
+    <tr><td style="color:var(--text)">${esc(a.email)}${a.email === myEmail ? ' <span class="muted">(du)</span>' : ''}</td>
+      <td style="text-align:right">${a.email === myEmail ? ''
+        : `<button class="btn small ghost" data-del-admin="${esc(a.email)}" title="Zugang entfernen">✕</button>`}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+async function deleteAdmin(email) {
+  if (!confirm(`Orga-Zugang für ${email} entfernen?`)) return;
+  const { error } = await sb.from('admins').delete().eq('email', email);
+  if (error) return toast(errText(error), 'error');
+  toast('Zugang entfernt');
+  renderAdmins();
 }
 
 function openNewEvent(copyFrom) {
@@ -515,6 +613,7 @@ document.addEventListener('click', (e) => {
   if (!b) return;
   if (b.hasAttribute('data-close')) return b.closest('dialog').close();
   if (b.dataset.delSignup) return deleteSignup(b.dataset.delSignup);
+  if (b.dataset.delAdmin) return deleteAdmin(b.dataset.delAdmin);
   if (b.dataset.delShift) return deleteShift(b.dataset.delShift);
   if (b.dataset.delStation) return deleteStation(b.dataset.delStation);
   if (b.dataset.addShift) return addShift(b.dataset.addShift);
@@ -529,5 +628,6 @@ document.addEventListener('click', (e) => {
     case 'copy-event': return openNewEvent(true);
     case 'new-event': return openNewEvent(false);
     case 'delete-event': return deleteEvent();
+    case 'set-password': return sb.auth.getUser().then(({ data }) => openPwDialog(data.user?.email ?? ''));
   }
 });
