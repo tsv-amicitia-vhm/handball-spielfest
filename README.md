@@ -12,7 +12,7 @@ Im Supabase-Dashboard unter **Table Editor**:
 
 | Tabelle | Wofür |
 |---|---|
-| `events` | Titel, Datum, Text für die Eltern, `signup_open` (Liste offen/geschlossen), `show_names` |
+| `events` | Titel, Datum, Text für die Eltern, Orga-Kontakt (`contact_name`, `contact_email` = E-Mail oder Telefon), `signup_open` (Liste offen/geschlossen), `show_names` |
 | `stations` | Ein Stand oder eine Spende. `kind` = `schicht` (mit Uhrzeit) oder `spende` (ohne Uhrzeit), `sort_order` = Reihenfolge |
 | `shifts` | Uhrzeit und Anzahl Plätze (`slots`) je Stand. Bei Spenden bleiben `start_time`/`end_time` leer |
 | `signups` | Die eingetragenen Namen. Hier kann die Orga Einträge korrigieren oder löschen |

@@ -1,5 +1,5 @@
-import { sb, $, esc, hm, fmtDate, todayIso, toast, errText, store } from './common.js?v=2610261539';
-import { VEREIN, VEREIN_IMPRESSUM, VEREIN_DATENSCHUTZ } from './config.js?v=2610261539';
+import { sb, $, esc, hm, fmtDate, todayIso, toast, errText, store } from './common.js?v=2610261543';
+import { VEREIN, VEREIN_IMPRESSUM, VEREIN_DATENSCHUTZ } from './config.js?v=2610261543';
 
 const MINE_KEY = 'spielfest-meine-eintraege';
 const NAME_KEY = 'spielfest-name';
@@ -96,10 +96,26 @@ function render() {
     <div class="progress">
       <div class="bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
       <span>${open > 0 ? `Noch <b>${open}</b> von ${total} Plätzen offen` : 'Alles belegt – vielen Dank!'}</span>
-    </div>`;
+    </div>
+    ${contactHtml()}`;
 
   renderSpenden();
   renderSchichten();
+}
+
+// Ansprechpartner aus events.contact_name / contact_email (E-Mail oder Telefonnummer)
+function contactHtml() {
+  const name = event.contact_name?.trim();
+  const c = event.contact_email?.trim();
+  if (!name && !c) return '';
+  let link = '';
+  if (c && c.includes('@')) link = `<a href="mailto:${esc(c)}">${esc(c)}</a>`;
+  else if (c) link = `<a href="tel:${esc(c.replace(/[^\d+]/g, ''))}">${esc(c)}</a>`;
+  return `
+    <div class="orga">
+      <span class="orga-label">Orga</span>
+      <span>Fragen? Wende dich an <b>${esc(name || 'das Orga-Team')}</b>${link ? ` · ${link}` : ''}</span>
+    </div>`;
 }
 
 function renderSpenden() {
