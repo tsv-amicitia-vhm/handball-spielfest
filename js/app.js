@@ -163,16 +163,6 @@ function row(e, title, desc) {
 }
 
 function renderFooter() {
-  $('#privacyText').innerHTML = `
-    <p>Verantwortlich ist der TSV Amicitia 1906/09 Viernheim e.V., Abteilung Handball
-      (<a href="${VEREIN_IMPRESSUM}" target="_blank" rel="noopener">Impressum</a>).</p>
-    <p>Gespeichert wird nur der Name, den du einträgst. Er ist für alle sichtbar, die diese Seite aufrufen,
-      und dient ausschließlich der Organisation des Spielfests. Vier Wochen nach dem Fest werden alle Namen automatisch gelöscht.</p>
-    <p>Die Einträge liegen in einer Datenbank von Supabase in Frankfurt am Main. Die Seite selbst wird über GitHub Pages ausgeliefert;
-      dabei verarbeitet GitHub technisch bedingt deine IP-Adresse. Schriften und Programmteile werden nicht von fremden Servern geladen.</p>
-    <p>Es werden keine Cookies gesetzt. Damit du dich wieder austragen kannst, merkt sich nur dein Browser deine Einträge und deinen Namen.</p>
-    <p>Mehr in der <a href="${VEREIN_DATENSCHUTZ}" target="_blank" rel="noopener">Datenschutzerklärung des Vereins</a>.
-      Du möchtest einen Eintrag löschen lassen, der nicht von deinem Gerät stammt? Sprich das Orga-Team an.</p>`;
   $('#footerLinks').innerHTML = `
     <a href="${VEREIN_IMPRESSUM}" target="_blank" rel="noopener">Impressum</a> ·
     <a href="${VEREIN_DATENSCHUTZ}" target="_blank" rel="noopener">Datenschutzerklärung</a> ·

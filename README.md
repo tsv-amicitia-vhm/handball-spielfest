@@ -24,7 +24,7 @@ Die Seite zeigt automatisch das nächste anstehende Fest. Ein bestimmtes Fest ze
 - Gespeichert wird nur der eingetragene Name. Er ist öffentlich auf der Seite sichtbar.
 - Vier Wochen nach dem Fest löscht ein nächtlicher Datenbank-Job (`helfernamen-loeschen`, pg_cron) alle Namen automatisch.
 - Keine Cookies. Der Browser merkt sich nur lokal die eigenen Einträge (zum Austragen) und den zuletzt benutzten Namen.
-- Den Datenschutzhinweis auf der Seite bitte vom Verein prüfen lassen.
+- Die Seite verlinkt Impressum und Datenschutzerklärung des Vereins; im Eintragen-Fenster steht, dass der Name öffentlich ist und nach dem Fest gelöscht wird. Am besten ergänzt der Verein in seiner Datenschutzerklärung einen Absatz zu dieser Liste.
 
 ## Datenbank
 

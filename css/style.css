@@ -220,10 +220,8 @@ label.field { display: block; margin: 0 0 8px; font-size: 15px; font-weight: 700
 .error { color: var(--danger); background: var(--danger-soft); padding: 8px 12px; border-radius: 8px; font-size: 15px; margin: 0 0 12px; }
 
 /* Fuß */
-footer.site { margin-top: 40px; padding: 26px 0 36px; border-top: 4px solid var(--green); background: var(--surface); color: var(--muted); }
-.privacy summary { cursor: pointer; font-weight: 700; color: var(--text); }
-.privacy p { font-size: 15px; margin: 8px 0; }
-#footerLinks { margin: 14px 0 0; }
+footer.site { margin-top: 40px; padding: 22px 0 30px; border-top: 4px solid var(--green); background: var(--surface); color: var(--muted); }
+#footerLinks { margin: 0; }
 
 /* Toasts */
 #toasts { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: grid; gap: 8px; z-index: 1000; width: min(420px, calc(100vw - 32px)); }
