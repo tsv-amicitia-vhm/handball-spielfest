@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Orga-Bereich Spielfest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A4%BE%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <h1>Orga-Bereich</h1>
+      <select id="eventSelect" class="hidden" aria-label="Spielfest auswählen" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--bg)"></select>
+      <a class="btn small ghost" href="index.html" target="_blank" rel="noopener">Helfer-Seite ↗</a>
+      <button class="btn small ghost hidden" id="logout">Abmelden</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Login -->
+    <section id="loginView" class="hidden">
+      <div class="card" style="max-width:440px;margin:40px auto">
+        <h2>Anmelden</h2>
+        <p class="muted" style="margin-top:0">Du bekommst einen Anmelde-Link per E-Mail. Zugang haben nur eingetragene Orga-Adressen.</p>
+        <form id="loginForm">
+          <label class="field">E-Mail
+            <input name="email" type="email" required autocomplete="email">
+          </label>
+          <button class="btn" type="submit">Link senden</button>
+        </form>
+        <p id="loginMsg" class="hidden" style="margin-bottom:0"></p>
+      </div>
+    </section>
+
+    <section id="noAccess" class="hidden">
+      <div class="notice">
+        <p>Du bist als <b id="noAccessEmail"></b> angemeldet, hast aber keinen Orga-Zugang.<br>
+        Bitte das Orga-Team, deine Adresse freizuschalten.</p>
+      </div>
+    </section>
+
+    <!-- App -->
+    <section id="appView" class="hidden">
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="overview" aria-selected="true">Übersicht</button>
+        <button role="tab" data-tab="helpers">Helfer</button>
+        <button role="tab" data-tab="plan">Schichtplan</button>
+        <button role="tab" data-tab="settings">Einstellungen</button>
+      </nav>
+      <div id="tab-overview"></div>
+      <div id="tab-helpers" class="hidden"></div>
+      <div id="tab-plan" class="hidden"></div>
+      <div id="tab-settings" class="hidden"></div>
+    </section>
+  </main>
+
+  <dialog id="addHelperDlg">
+    <form id="addHelperForm" method="dialog">
+      <div class="dlg-head"><h2>Helfer eintragen</h2><p>Für Leute, die sich per Zuruf gemeldet haben.</p></div>
+      <div class="dlg-body">
+        <label class="field">Schicht <select name="shift" required></select></label>
+        <label class="field">Name <input name="name" required minlength="2" maxlength="80"></label>
+        <label class="field">E-Mail <input name="email" type="email" required maxlength="200"></label>
+        <label class="field">Telefon <small>(optional)</small> <input name="phone" maxlength="40"></label>
+        <label class="field">Bemerkung <small>(optional)</small> <input name="comment" maxlength="500"></label>
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn ghost" data-close>Abbrechen</button>
+        <button type="submit" class="btn">Eintragen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="newEventDlg">
+    <form id="newEventForm" method="dialog">
+      <div class="dlg-head"><h2 id="newEventTitle">Neues Spielfest</h2><p id="newEventSub"></p></div>
+      <div class="dlg-body">
+        <label class="field">Titel <input name="title" required></label>
+        <div class="grid2">
+          <label class="field">Datum <input name="event_date" type="date" required></label>
+          <label class="field">Kurzname für den Link <small>(a-z, 0-9, -)</small><input name="slug" required pattern="[a-z0-9\-]{3,60}"></label>
+        </div>
+        <input type="hidden" name="copy_from">
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn ghost" data-close>Abbrechen</button>
+        <button type="submit" class="btn">Anlegen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

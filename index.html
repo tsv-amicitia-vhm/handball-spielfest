@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Helfer-Schichtplan Spielfest</title>
+  <meta name="description" content="Trag dich als Helferin oder Helfer für das Handball-Spielfest ein.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A4%BE%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+  <section class="hero">
+    <div class="wrap">
+      <div class="kicker" id="verein"></div>
+      <h1 id="title">Helfer-Schichtplan</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+  </section>
+
+  <main class="wrap" id="main">
+    <div class="lead-card" id="lead">
+      <div class="skeleton" style="height:60px;margin:0"></div>
+    </div>
+
+    <section id="mine" class="mine hidden" aria-live="polite"></section>
+
+    <div class="toolbar">
+      <div class="chips" role="group" aria-label="Filter">
+        <button class="chip" id="filterFree" aria-pressed="false">Nur freie Plätze</button>
+      </div>
+      <span class="muted" id="updated" style="font-size:13px"></span>
+    </div>
+
+    <div id="stations">
+      <div class="skeleton"></div><div class="skeleton"></div>
+    </div>
+  </main>
+
+  <!-- Abmelde-Ansicht (über Link aus der Bestätigung) -->
+  <main class="wrap hidden" id="cancelView"></main>
+
+  <footer class="site wrap">
+    <span id="contact"></span>
+    <div><a href="admin.html" class="muted">Orga-Bereich</a></div>
+  </footer>
+
+  <dialog id="signupDlg">
+    <form id="signupForm" method="dialog" novalidate>
+      <div class="dlg-head">
+        <h2 id="dlgTitle">Eintragen</h2>
+        <p id="dlgSub"></p>
+      </div>
+      <div class="dlg-body">
+        <div class="error hidden" id="formError" role="alert"></div>
+        <label class="field">Name
+          <input name="name" autocomplete="name" required minlength="2" maxlength="80" placeholder="Vor- und Nachname">
+        </label>
+        <label class="field">E-Mail
+          <input name="email" type="email" autocomplete="email" required maxlength="200" placeholder="für Rückfragen der Orga">
+        </label>
+        <label class="field">Telefon <small>(optional)</small>
+          <input name="phone" type="tel" autocomplete="tel" maxlength="40">
+        </label>
+        <label class="field">Bemerkung <small>(optional)</small>
+          <textarea name="comment" maxlength="500" placeholder="z. B. Elternteil von …, bringe Kuchen mit"></textarea>
+        </label>
+        <p class="muted" style="font-size:13px;margin:0">
+          Name und E-Mail sieht nur das Orga-Team. Im Plan erscheint dein Vorname mit Initial.
+        </p>
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn ghost" data-close>Abbrechen</button>
+        <button type="submit" class="btn" id="submitBtn">Verbindlich eintragen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="doneDlg">
+    <div class="dlg-head">
+      <div class="success-icon" aria-hidden="true">✓</div>
+      <h2>Danke, du bist eingetragen!</h2>
+      <p id="doneSub"></p>
+    </div>
+    <div class="dlg-body">
+      <p style="margin:0;font-size:14px"><b>Dein Link zum Austragen</b> – bitte speichern. Auf diesem Gerät findest du deine Schichten auch oben auf der Seite.</p>
+      <div class="linkbox">
+        <input id="cancelLink" readonly aria-label="Link zum Austragen">
+        <button class="btn small ghost" id="copyLink" type="button">Kopieren</button>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn ghost" id="icsBtn" type="button">In Kalender eintragen</button>
+      <button class="btn" data-close type="button">Fertig</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
