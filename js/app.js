@@ -1,5 +1,5 @@
-import { sb, $, esc, hm, fmtDate, todayIso, toast, errText, store } from './common.js?v=b186e88';
-import { VEREIN, VEREIN_IMPRESSUM, VEREIN_DATENSCHUTZ } from './config.js?v=b186e88';
+import { sb, $, esc, hm, fmtDate, todayIso, toast, errText, store } from './common.js?v=2610261539';
+import { VEREIN, VEREIN_IMPRESSUM, VEREIN_DATENSCHUTZ } from './config.js?v=2610261539';
 
 const MINE_KEY = 'spielfest-meine-eintraege';
 const NAME_KEY = 'spielfest-name';
@@ -109,7 +109,7 @@ function renderSpenden() {
   $('#spenden').innerHTML = `
     <h2 class="section-title">Kuchen &amp; Spenden</h2>
     <div class="card list">
-      ${list.length ? list.map((e) => row(e, e.station.name)).join('')
+      ${list.length ? list.map((e) => row(e, e.station.name, e.station.description)).join('')
         : '<p class="muted" style="margin:0;padding:14px 18px">Alles vergeben – danke!</p>'}
     </div>`;
 }
@@ -154,7 +154,7 @@ function row(e, title, desc) {
         <span class="count" title="belegt / Plätze">${Math.min(s.taken, e.slots)}/${e.slots}</span>
       </div>
       ${desc ? `<p class="desc">${esc(desc)}</p>` : ''}
-      ${e.note ? `<p class="desc">${esc(e.note)}</p>` : ''}
+      ${e.note ? `<p class="note">${esc(e.note)}</p>` : ''}
       <ul class="names">${names}${frees}</ul>
       <button class="btn ${full ? 'done' : ''}" data-entry="${e.id}" ${full || !event.signup_open ? 'disabled' : ''}>
         ${full ? 'Vollständig belegt' : 'Eintragen'}

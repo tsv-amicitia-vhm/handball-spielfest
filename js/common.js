@@ -1,6 +1,6 @@
 // Supabase-Bibliothek liegt lokal im Repo (keine Anfragen an fremde CDNs)
 import { createClient } from '../vendor/supabase-js-2.118.0.min.js';
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=b186e88';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=2610261539';
 
 // Kein Login: Sitzung weder speichern noch erneuern
 export const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
