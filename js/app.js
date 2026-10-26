@@ -1,52 +1,45 @@
-import { sb, $, esc, hm, fmtDate, todayIso, toast, errText, icsFile, download, store } from './common.js';
-import { VEREIN } from './config.js';
+import { sb, $, esc, hm, fmtDate, todayIso, toast, errText, store } from './common.js';
+import { VEREIN, VEREIN_IMPRESSUM, VEREIN_DATENSCHUTZ } from './config.js';
 
-const MINE_KEY = 'spielfest-meine-schichten';
-const PERSON_KEY = 'spielfest-person';
+const MINE_KEY = 'spielfest-meine-eintraege';
+const NAME_KEY = 'spielfest-name';
 
 let event = null;
 let stations = [];          // inkl. shifts
 let status = new Map();     // shift_id -> { taken, names }
 let onlyFree = false;
-let current = null;         // Schicht im Eintragen-Dialog
-let lastDone = null;
+let current = null;         // Eintrag im Dialog
 
-// ---------- Start ----------
+init();
 
-const cancelToken = new URLSearchParams(location.hash.slice(1)).get('abmelden');
-if (cancelToken) showCancelView(cancelToken);
-else init();
+// ---------- Laden ----------
 
 async function init() {
   $('#verein').textContent = VEREIN;
+  renderFooter();
   try {
     event = await loadEvent();
   } catch (e) {
     return fail(errText(e));
   }
-  if (!event) return fail('Aktuell ist kein Spielfest angelegt.');
+  if (!event) return fail('Aktuell ist kein Spielfest eingetragen.');
 
-  document.title = `Helfer – ${event.title}`;
+  document.title = `Helferliste – ${event.title}`;
   $('#title').textContent = event.title;
   $('#meta').innerHTML = [
-    `<span>📅 ${esc(fmtDate(event.event_date))}</span>`,
-    event.location ? `<span>📍 ${esc(event.location)}</span>` : '',
+    `<span>${esc(fmtDate(event.event_date))}</span>`,
+    event.location ? `<span>${esc(event.location)}</span>` : '',
   ].join('');
-  if (event.contact_email || event.contact_name) {
-    $('#contact').innerHTML = `Fragen? ${esc(event.contact_name || '')} ${
-      event.contact_email ? `<a href="mailto:${esc(event.contact_email)}">${esc(event.contact_email)}</a>` : ''}`;
-  }
 
   const { data, error } = await sb.from('stations')
-    .select('id, name, description, sort_order, shifts(id, start_time, end_time, slots, note)')
+    .select('id, name, description, kind, sort_order, shifts(id, start_time, end_time, slots, note)')
     .eq('event_id', event.id)
     .order('sort_order').order('name');
   if (error) return fail(errText(error));
-  stations = data.map((s) => ({ ...s, shifts: s.shifts.sort((a, b) => a.start_time.localeCompare(b.start_time)) }));
+  stations = data;
 
   await refreshStatus();
   renderMine();
-
   setInterval(refreshStatus, 30000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshStatus(); });
 }
@@ -58,12 +51,9 @@ async function loadEvent() {
     if (error) throw error;
     return data;
   }
-  // sonst: das nächste anstehende, ersatzweise das letzte
-  let { data, error } = await sb.from('events').select('*')
+  // sonst: das nächste anstehende Fest
+  const { data, error } = await sb.from('events').select('*')
     .gte('event_date', todayIso()).order('event_date').limit(1);
-  if (error) throw error;
-  if (data.length) return data[0];
-  ({ data, error } = await sb.from('events').select('*').order('event_date', { ascending: false }).limit(1));
   if (error) throw error;
   return data[0] ?? null;
 }
@@ -73,81 +63,123 @@ async function refreshStatus() {
   if (error) { $('#updated').textContent = 'Aktualisierung fehlgeschlagen'; return; }
   status = new Map(data.map((r) => [r.shift_id, r]));
   render();
-  $('#updated').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  $('#updated').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
 }
 
 function fail(msg) {
-  $('#lead').innerHTML = `<p>${esc(msg)}</p>`;
-  $('#stations').innerHTML = '';
+  $('#lead').innerHTML = `<p style="margin:0">${esc(msg)}</p>`;
+  $('#schichten').innerHTML = '';
+  $('#spenden').innerHTML = '';
 }
 
 // ---------- Darstellung ----------
 
+const st = (sh) => status.get(sh.id) ?? { taken: 0, names: [] };
+const isFull = (sh) => st(sh).taken >= sh.slots;
+
+function allEntries(kind) {
+  return stations
+    .filter((s) => s.kind === kind)
+    .flatMap((s) => s.shifts.map((sh) => ({ ...sh, station: s })));
+}
+
 function render() {
+  const entries = [...allEntries('spende'), ...allEntries('schicht')];
   let total = 0, taken = 0;
-  for (const st of stations) for (const sh of st.shifts) {
-    total += sh.slots;
-    taken += Math.min(status.get(sh.id)?.taken ?? 0, sh.slots);
-  }
-  const pct = total ? Math.round((taken / total) * 100) : 0;
+  for (const e of entries) { total += e.slots; taken += Math.min(st(e).taken, e.slots); }
   const open = total - taken;
+  const pct = total ? Math.round((taken / total) * 100) : 0;
 
   $('#lead').innerHTML = `
     ${event.description ? `<p>${esc(event.description).replace(/\n/g, '<br>')}</p>` : ''}
-    ${!event.signup_open ? `<p class="error" style="margin-bottom:12px">Die Anmeldung ist geschlossen. Bei Fragen bitte ans Orga-Team wenden.</p>` : ''}
+    ${!event.signup_open ? `<p class="error">Die Liste ist geschlossen. Eintragen ist nicht mehr möglich.</p>` : ''}
     <div class="progress">
       <div class="bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
-      <span><b>${taken}</b> von ${total} Plätzen belegt${open > 0 ? ` · noch <b>${open}</b> frei` : ' · alles voll 🎉'}</span>
+      <span>${open > 0 ? `Noch <b>${open}</b> von ${total} Plätzen offen` : 'Alles belegt – vielen Dank!'}</span>
     </div>`;
 
-  const html = stations.map((st) => {
-    const rows = st.shifts
-      .filter((sh) => !onlyFree || (status.get(sh.id)?.taken ?? 0) < sh.slots)
-      .map(shiftRow).join('');
-    if (!rows) return '';
-    return `
-      <article class="station">
-        <header>
-          <h2>${esc(st.name)}</h2>
-          ${st.description ? `<div class="desc">${esc(st.description)}</div>` : ''}
-        </header>
-        ${rows}
-      </article>`;
-  }).join('');
-
-  $('#stations').innerHTML = html ||
-    `<div class="notice">${onlyFree ? 'Alle Schichten sind belegt. Vielen Dank!' : 'Es sind noch keine Schichten angelegt.'}</div>`;
+  renderSpenden();
+  renderSchichten();
 }
 
-function shiftRow(sh) {
-  const s = status.get(sh.id) ?? { taken: 0, names: [] };
-  const full = s.taken >= sh.slots;
-  const names = s.names ?? [];
-  const chips = [];
-  for (let i = 0; i < sh.slots; i++) {
-    if (i < s.taken) chips.push(`<span class="slot">${esc(names[i] ?? 'belegt')}</span>`);
-    else chips.push(`<span class="slot free">frei</span>`);
+function renderSpenden() {
+  const list = allEntries('spende').filter((e) => !onlyFree || !isFull(e));
+  const all = allEntries('spende');
+  if (!all.length) { $('#spenden').innerHTML = ''; return; }
+  $('#spenden').innerHTML = `
+    <h2 class="section-title">Kuchen &amp; Spenden</h2>
+    <div class="card list">
+      ${list.length ? list.map((e) => row(e, e.station.name)).join('')
+        : '<p class="muted" style="margin:0;padding:14px 18px">Alles vergeben – danke!</p>'}
+    </div>`;
+}
+
+function renderSchichten() {
+  const list = allEntries('schicht')
+    .filter((e) => !onlyFree || !isFull(e))
+    .sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? '') || a.station.sort_order - b.station.sort_order);
+  const all = allEntries('schicht');
+  if (!all.length) { $('#schichten').innerHTML = ''; return; }
+
+  // nach Startzeit gruppieren
+  const groups = [];
+  for (const e of list) {
+    const key = `${hm(e.start_time)}–${hm(e.end_time)}`;
+    const g = groups.at(-1);
+    if (g && g.key === key) g.items.push(e); else groups.push({ key, items: [e] });
   }
-  // bei vielen Plätzen nicht jeden freien einzeln zeigen
-  const freeCount = sh.slots - s.taken;
-  const slotHtml = sh.slots > 8
-    ? chips.slice(0, s.taken).join('') + (freeCount > 0 ? `<span class="slot free">${freeCount} frei</span>` : '')
-    : chips.join('');
 
-  return `
-    <div class="shift ${full ? 'full' : ''}">
-      <div class="time">${hm(sh.start_time)}–${hm(sh.end_time)}</div>
-      <div class="slots"><span class="count">${Math.min(s.taken, sh.slots)}/${sh.slots}</span>${slotHtml}</div>
-      <div>
-        <button class="btn small" data-shift="${sh.id}" ${full || !event.signup_open ? 'disabled' : ''}>
-          ${full ? 'Voll' : 'Eintragen'}
-        </button>
-      </div>
-      ${sh.note ? `<div class="note">${esc(sh.note)}</div>` : ''}
-    </div>`;
+  $('#schichten').innerHTML = `
+    <h2 class="section-title">Helferschichten</h2>
+    ${groups.length ? groups.map((g) => `
+      <div class="slot-group">
+        <div class="slot-time"><span>${g.key}</span> Uhr</div>
+        <div class="card list">${g.items.map((e) => row(e, e.station.name, e.station.description)).join('')}</div>
+      </div>`).join('')
+    : '<div class="card"><p class="muted" style="margin:0">Alle Schichten sind besetzt – danke!</p></div>'}`;
 }
 
-// ---------- Meine Schichten (auf diesem Gerät) ----------
+function row(e, title, desc) {
+  const s = st(e);
+  const full = s.taken >= e.slots;
+  const free = Math.max(e.slots - s.taken, 0);
+  const names = (s.names ?? []).map((n) => `<li class="name">${esc(n)}</li>`).join('');
+  const frees = e.slots <= 6
+    ? Array.from({ length: free }, () => '<li class="name free">offen</li>').join('')
+    : (free ? `<li class="name free">${free} offen</li>` : '');
+  return `
+    <article class="entry ${full ? 'full' : ''}">
+      <div class="entry-head">
+        <h3>${esc(title)}</h3>
+        <span class="count" title="belegt / Plätze">${Math.min(s.taken, e.slots)}/${e.slots}</span>
+      </div>
+      ${desc ? `<p class="desc">${esc(desc)}</p>` : ''}
+      ${e.note ? `<p class="desc">${esc(e.note)}</p>` : ''}
+      <ul class="names">${names}${frees}</ul>
+      <button class="btn ${full ? 'done' : ''}" data-entry="${e.id}" ${full || !event.signup_open ? 'disabled' : ''}>
+        ${full ? 'Vollständig belegt' : 'Eintragen'}
+      </button>
+    </article>`;
+}
+
+function renderFooter() {
+  $('#privacyText').innerHTML = `
+    <p>Verantwortlich ist der TSV Amicitia 1906/09 Viernheim e.V., Abteilung Handball
+      (<a href="${VEREIN_IMPRESSUM}" target="_blank" rel="noopener">Impressum</a>).</p>
+    <p>Gespeichert wird nur der Name, den du einträgst. Er ist für alle sichtbar, die diese Seite aufrufen,
+      und dient ausschließlich der Organisation des Spielfests. Vier Wochen nach dem Fest werden alle Namen automatisch gelöscht.</p>
+    <p>Die Einträge liegen in einer Datenbank von Supabase in Frankfurt am Main. Die Seite selbst wird über GitHub Pages ausgeliefert;
+      dabei verarbeitet GitHub technisch bedingt deine IP-Adresse. Schriften und Programmteile werden nicht von fremden Servern geladen.</p>
+    <p>Es werden keine Cookies gesetzt. Damit du dich wieder austragen kannst, merkt sich nur dein Browser deine Einträge und deinen Namen.</p>
+    <p>Mehr in der <a href="${VEREIN_DATENSCHUTZ}" target="_blank" rel="noopener">Datenschutzerklärung des Vereins</a>.
+      Du möchtest einen Eintrag löschen lassen, der nicht von deinem Gerät stammt? Sprich das Orga-Team an.</p>`;
+  $('#footerLinks').innerHTML = `
+    <a href="${VEREIN_IMPRESSUM}" target="_blank" rel="noopener">Impressum</a> ·
+    <a href="${VEREIN_DATENSCHUTZ}" target="_blank" rel="noopener">Datenschutzerklärung</a> ·
+    <a href="https://www.handballinviernheim.de" target="_blank" rel="noopener">handballinviernheim.de</a>`;
+}
+
+// ---------- Deine Einträge (nur auf diesem Gerät) ----------
 
 async function renderMine() {
   const all = store.get(MINE_KEY, []);
@@ -155,185 +187,105 @@ async function renderMine() {
   const box = $('#mine');
   if (!mine.length) { box.classList.add('hidden'); return; }
 
-  // prüfen, ob die Einträge noch existieren (Orga kann löschen)
+  // prüfen, ob die Einträge noch existieren
   const checks = await Promise.all(mine.map((m) => sb.rpc('get_signup', { p_token: m.token })));
-  const stillThere = new Set(mine.filter((m, i) => !checks[i].error && checks[i].data?.length).map((m) => m.token));
-  const anyFailed = checks.some((c) => c.error);
-  if (!anyFailed) {
-    mine = mine.filter((m) => stillThere.has(m.token));
-    store.set(MINE_KEY, all.filter((m) => m.event_id !== event.id || stillThere.has(m.token)));
+  if (!checks.some((c) => c.error)) {
+    const alive = new Set(mine.filter((m, i) => checks[i].data?.length).map((m) => m.token));
+    mine = mine.filter((m) => alive.has(m.token));
+    store.set(MINE_KEY, all.filter((m) => m.event_id !== event.id || alive.has(m.token)));
   }
   if (!mine.length) { box.classList.add('hidden'); return; }
 
-  mine.sort((a, b) => a.start.localeCompare(b.start));
+  mine.sort((a, b) => (a.start ?? '').localeCompare(b.start ?? ''));
   box.innerHTML = `
-    <h3>Deine Schichten</h3>
+    <h2>Deine Einträge</h2>
     <ul>${mine.map((m) => `
       <li>
-        <span><b>${hm(m.start)}–${hm(m.end)}</b> ${esc(m.station)} <span class="muted">(${esc(m.name)})</span></span>
-        <span class="row">
-          <button class="btn link" data-ics="${m.token}">Kalender</button>
-          <button class="btn small ghost" data-cancel="${m.token}">Austragen</button>
-        </span>
+        <span>${m.start ? `<b>${hm(m.start)}–${hm(m.end)}</b> ` : ''}${esc(m.station)} <span class="muted">(${esc(m.name)})</span></span>
+        <button class="btn small ghost" data-cancel="${m.token}">Austragen</button>
       </li>`).join('')}
     </ul>`;
   box.classList.remove('hidden');
 }
 
-// ---------- Eintragen ----------
+// ---------- Eintragen / Austragen ----------
 
-document.addEventListener('click', async (e) => {
-  const t = e.target.closest('button');
-  if (!t) return;
-  if (t.dataset.shift) openSignup(t.dataset.shift);
-  if (t.hasAttribute('data-close')) t.closest('dialog').close();
-  if (t.dataset.cancel) quickCancel(t.dataset.cancel);
-  if (t.dataset.ics) {
-    const m = store.get(MINE_KEY, []).find((x) => x.token === t.dataset.ics);
-    if (m) downloadIcs(m);
-  }
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.entry) openSignup(b.dataset.entry);
+  if (b.hasAttribute('data-close')) b.closest('dialog').close();
+  if (b.dataset.cancel) cancel(b.dataset.cancel);
 });
 
-$('#filterFree').addEventListener('click', (e) => {
-  onlyFree = !onlyFree;
-  e.currentTarget.setAttribute('aria-pressed', String(onlyFree));
+$('#filterFree').addEventListener('change', (e) => {
+  onlyFree = e.target.checked;
   render();
 });
 
-function findShift(id) {
-  for (const st of stations) {
-    const sh = st.shifts.find((x) => x.id === id);
-    if (sh) return { ...sh, station: st };
+function findEntry(id) {
+  for (const s of stations) {
+    const sh = s.shifts.find((x) => x.id === id);
+    if (sh) return { ...sh, station: s };
   }
 }
 
 function openSignup(id) {
-  current = findShift(id);
+  current = findEntry(id);
   if (!current) return;
-  const form = $('#signupForm');
-  form.reset();
-  const person = store.get(PERSON_KEY, {});
-  form.name.value = person.name ?? '';
-  form.email.value = person.email ?? '';
-  form.phone.value = person.phone ?? '';
+  const f = $('#signupForm');
+  f.reset();
+  f.name.value = store.get(NAME_KEY, '');
   $('#formError').classList.add('hidden');
+  $('#dlgKicker').textContent = current.station.kind === 'spende'
+    ? 'Ich bringe mit'
+    : `${fmtDate(event.event_date, { weekday: 'short', day: 'numeric', month: 'long' })}, ${hm(current.start_time)}–${hm(current.end_time)} Uhr`;
   $('#dlgTitle').textContent = current.station.name;
-  $('#dlgSub').textContent = `${fmtDate(event.event_date, { weekday: 'short', day: 'numeric', month: 'long' })}, ${hm(current.start_time)}–${hm(current.end_time)} Uhr`;
   $('#signupDlg').showModal();
-  (form.name.value ? form.comment : form.name).focus();
+  f.name.focus();
+  f.name.select();
 }
 
 $('#signupForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const form = e.currentTarget;
+  const f = e.currentTarget;
   const err = $('#formError');
-  const name = form.name.value.trim();
-  const email = form.email.value.trim();
-  if (name.length < 2) return showErr('Bitte deinen Namen angeben.', form.name);
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showErr('Bitte eine gültige E-Mail-Adresse angeben.', form.email);
-
+  const name = f.name.value.trim().replace(/\s+/g, ' ');
+  if (name.length < 2) {
+    err.textContent = 'Bitte deinen Namen eintragen.';
+    err.classList.remove('hidden');
+    return f.name.focus();
+  }
   const btn = $('#submitBtn');
-  btn.disabled = true; btn.textContent = 'Wird gespeichert …';
-  const { data: token, error } = await sb.rpc('sign_up', {
-    p_shift_id: current.id, p_name: name, p_email: email,
-    p_phone: form.phone.value.trim() || null, p_comment: form.comment.value.trim() || null,
-  });
-  btn.disabled = false; btn.textContent = 'Verbindlich eintragen';
+  btn.disabled = true; btn.textContent = 'Speichert …';
+  const { data: token, error } = await sb.rpc('sign_up', { p_shift_id: current.id, p_name: name });
+  btn.disabled = false; btn.textContent = 'Eintragen';
 
-  if (error) { await refreshStatus(); return showErr(errText(error)); }
+  if (error) {
+    err.textContent = errText(error);
+    err.classList.remove('hidden');
+    refreshStatus();
+    return;
+  }
 
-  store.set(PERSON_KEY, { name, email, phone: form.phone.value.trim() });
-  const entry = {
+  store.set(NAME_KEY, name);
+  store.set(MINE_KEY, [...store.get(MINE_KEY, []), {
     token, event_id: event.id, station: current.station.name,
     start: current.start_time, end: current.end_time, name,
-  };
-  store.set(MINE_KEY, [...store.get(MINE_KEY, []), entry]);
-  lastDone = entry;
-
+  }]);
   $('#signupDlg').close();
-  $('#doneSub').textContent = `${current.station.name}, ${hm(current.start_time)}–${hm(current.end_time)} Uhr am ${fmtDate(event.event_date, { day: 'numeric', month: 'long' })}.`;
-  $('#cancelLink').value = cancelUrl(token);
-  $('#doneDlg').showModal();
-  refreshStatus();
+  toast(`Danke, ${name.split(' ')[0]}! Du bist eingetragen.`);
+  await refreshStatus();
   renderMine();
-
-  function showErr(msg, field) {
-    err.textContent = msg;
-    err.classList.remove('hidden');
-    field?.focus();
-  }
 });
 
-$('#copyLink').addEventListener('click', async () => {
-  const input = $('#cancelLink');
-  try { await navigator.clipboard.writeText(input.value); toast('Link kopiert'); }
-  catch { input.select(); document.execCommand('copy'); toast('Link kopiert'); }
-});
-$('#icsBtn').addEventListener('click', () => lastDone && downloadIcs(lastDone));
-
-function cancelUrl(token) {
-  return `${location.origin}${location.pathname}#abmelden=${token}`;
-}
-
-function downloadIcs(m) {
-  download(icsFile({
-    title: `Helferdienst: ${m.station} (${event.title})`,
-    date: event.event_date, start: m.start, end: m.end,
-    location: event.location,
-    description: `Austragen: ${cancelUrl(m.token)}`,
-  }), 'helferdienst.ics');
-}
-
-async function quickCancel(token) {
+async function cancel(token) {
   const m = store.get(MINE_KEY, []).find((x) => x.token === token);
-  if (!confirm(`Wirklich austragen${m ? ` aus „${m.station}“ ${hm(m.start)}–${hm(m.end)}` : ''}?`)) return;
+  if (!confirm(`Wirklich austragen${m ? ` aus „${m.station}“` : ''}?`)) return;
   const { error } = await sb.rpc('cancel_signup', { p_token: token });
   if (error) return toast(errText(error), 'error');
   store.set(MINE_KEY, store.get(MINE_KEY, []).filter((x) => x.token !== token));
   toast('Du bist ausgetragen.');
-  refreshStatus();
+  await refreshStatus();
   renderMine();
 }
-
-// ---------- Austragen über Link ----------
-
-async function showCancelView(token) {
-  $('#verein').textContent = VEREIN;
-  $('#main').classList.add('hidden');
-  const view = $('#cancelView');
-  view.classList.remove('hidden');
-  view.innerHTML = `<div class="skeleton" style="margin-top:-30px"></div>`;
-  $('#title').textContent = 'Austragen';
-
-  const { data, error } = await sb.rpc('get_signup', { p_token: token });
-  if (error) {
-    view.innerHTML = `<div class="notice">${esc(errText(error))}</div>`;
-    return;
-  }
-  const s = data?.[0];
-  if (!s) {
-    view.innerHTML = `<div class="notice"><p>Diese Anmeldung gibt es nicht mehr – vielleicht bist du schon ausgetragen.</p>
-      <a class="btn" href="${location.pathname}">Zum Schichtplan</a></div>`;
-    return;
-  }
-  view.innerHTML = `
-    <div class="lead-card">
-      <p><b>${esc(s.name)}</b><br>
-      ${esc(s.station)}, ${hm(s.start_time)}–${hm(s.end_time)} Uhr<br>
-      ${esc(s.event_title)}, ${esc(fmtDate(s.event_date))}</p>
-      <div class="row">
-        <button class="btn danger" id="doCancel">Ja, austragen</button>
-        <a class="btn ghost" href="${location.pathname}">Zum Schichtplan</a>
-      </div>
-    </div>`;
-  $('#doCancel').addEventListener('click', async (e) => {
-    e.currentTarget.disabled = true;
-    const { error } = await sb.rpc('cancel_signup', { p_token: token });
-    if (error) { e.currentTarget.disabled = false; return toast(errText(error), 'error'); }
-    store.set(MINE_KEY, store.get(MINE_KEY, []).filter((x) => x.token !== token));
-    view.innerHTML = `<div class="notice"><p>Du bist ausgetragen. Danke, dass du Bescheid gegeben hast!</p>
-      <a class="btn" href="${location.pathname}">Andere Schicht wählen</a></div>`;
-  });
-}
-
-window.addEventListener('hashchange', () => location.reload());

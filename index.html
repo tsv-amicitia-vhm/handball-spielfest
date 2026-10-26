@@ -3,98 +3,74 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Helfer-Schichtplan Spielfest</title>
-  <meta name="description" content="Trag dich als Helferin oder Helfer für das Handball-Spielfest ein.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>Helferliste Mini-Spielfest</title>
+  <meta name="description" content="Helferliste für das Mini-Spielfest von Handball in Viernheim – einfach Namen eintragen.">
+  <meta name="theme-color" content="#0b3a7a">
+  <link rel="preload" href="fonts/source-sans-3-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A4%BE%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230b3a7a'/%3E%3Cpath d='M32 2a30 30 0 0 1 0 60' fill='%2300a19a'/%3E%3C/svg%3E">
 </head>
 <body>
-  <section class="hero">
+  <header class="hero">
     <div class="wrap">
       <div class="kicker" id="verein"></div>
-      <h1 id="title">Helfer-Schichtplan</h1>
+      <h1 id="title">Helferliste</h1>
       <div class="meta" id="meta"></div>
     </div>
-  </section>
+  </header>
 
   <main class="wrap" id="main">
-    <div class="lead-card" id="lead">
-      <div class="skeleton" style="height:60px;margin:0"></div>
-    </div>
+    <section class="card lead" id="lead">
+      <div class="skeleton" style="height:56px;margin:0"></div>
+    </section>
 
     <section id="mine" class="mine hidden" aria-live="polite"></section>
 
     <div class="toolbar">
-      <div class="chips" role="group" aria-label="Filter">
-        <button class="chip" id="filterFree" aria-pressed="false">Nur freie Plätze</button>
-      </div>
-      <span class="muted" id="updated" style="font-size:13px"></span>
+      <label class="switch">
+        <input type="checkbox" id="filterFree">
+        <span>Nur offene Plätze zeigen</span>
+      </label>
+      <span class="muted small" id="updated"></span>
     </div>
 
-    <div id="stations">
+    <section id="spenden"></section>
+    <section id="schichten">
       <div class="skeleton"></div><div class="skeleton"></div>
-    </div>
+    </section>
   </main>
 
-  <!-- Abmelde-Ansicht (über Link aus der Bestätigung) -->
-  <main class="wrap hidden" id="cancelView"></main>
-
-  <footer class="site wrap">
-    <span id="contact"></span>
-    <div><a href="admin.html" class="muted">Orga-Bereich</a></div>
+  <footer class="site">
+    <div class="wrap">
+      <details class="privacy">
+        <summary>Datenschutz</summary>
+        <div id="privacyText"></div>
+      </details>
+      <p class="small" id="footerLinks"></p>
+    </div>
   </footer>
 
-  <dialog id="signupDlg">
+  <dialog id="signupDlg" aria-labelledby="dlgTitle">
     <form id="signupForm" method="dialog" novalidate>
       <div class="dlg-head">
+        <p class="dlg-kicker" id="dlgKicker"></p>
         <h2 id="dlgTitle">Eintragen</h2>
-        <p id="dlgSub"></p>
       </div>
       <div class="dlg-body">
         <div class="error hidden" id="formError" role="alert"></div>
-        <label class="field">Name
-          <input name="name" autocomplete="name" required minlength="2" maxlength="80" placeholder="Vor- und Nachname">
+        <label class="field">Dein Name
+          <input name="name" autocomplete="name" required minlength="2" maxlength="60" placeholder="z. B. Leni S.">
         </label>
-        <label class="field">E-Mail
-          <input name="email" type="email" autocomplete="email" required maxlength="200" placeholder="für Rückfragen der Orga">
-        </label>
-        <label class="field">Telefon <small>(optional)</small>
-          <input name="phone" type="tel" autocomplete="tel" maxlength="40">
-        </label>
-        <label class="field">Bemerkung <small>(optional)</small>
-          <textarea name="comment" maxlength="500" placeholder="z. B. Elternteil von …, bringe Kuchen mit"></textarea>
-        </label>
-        <p class="muted" style="font-size:13px;margin:0">
-          Name und E-Mail sieht nur das Orga-Team. Im Plan erscheint dein Vorname mit Initial.
+        <p class="muted small" style="margin:0">
+          Der Name erscheint öffentlich in dieser Liste. Vorname und Anfangsbuchstabe reichen.
         </p>
       </div>
       <div class="dlg-foot">
         <button type="button" class="btn ghost" data-close>Abbrechen</button>
-        <button type="submit" class="btn" id="submitBtn">Verbindlich eintragen</button>
+        <button type="submit" class="btn" id="submitBtn">Eintragen</button>
       </div>
     </form>
-  </dialog>
-
-  <dialog id="doneDlg">
-    <div class="dlg-head">
-      <div class="success-icon" aria-hidden="true">✓</div>
-      <h2>Danke, du bist eingetragen!</h2>
-      <p id="doneSub"></p>
-    </div>
-    <div class="dlg-body">
-      <p style="margin:0;font-size:14px"><b>Dein Link zum Austragen</b> – bitte speichern. Auf diesem Gerät findest du deine Schichten auch oben auf der Seite.</p>
-      <div class="linkbox">
-        <input id="cancelLink" readonly aria-label="Link zum Austragen">
-        <button class="btn small ghost" id="copyLink" type="button">Kopieren</button>
-      </div>
-    </div>
-    <div class="dlg-foot">
-      <button class="btn ghost" id="icsBtn" type="button">In Kalender eintragen</button>
-      <button class="btn" data-close type="button">Fertig</button>
-    </div>
   </dialog>
 
   <script type="module" src="js/app.js"></script>
